@@ -35,8 +35,23 @@ const patterns = [
   },
 ];
 
+function hasSensitiveFileName(file) {
+  const name = file.split("/").at(-1) ?? file;
+  return (
+    name === ".env" ||
+    (name.startsWith(".env.") && name !== ".env.example") ||
+    name === "auth.json" ||
+    name === "credentials" ||
+    name.startsWith("credentials.") ||
+    /\.(?:key|pem|p12|pfx)$/i.test(name)
+  );
+}
+
 const findings = [];
 for (const file of candidateFiles) {
+  if (hasSensitiveFileName(file)) {
+    findings.push(`${file}: sensitive credential filename`);
+  }
   let bytes;
   try {
     bytes = readFileSync(file);

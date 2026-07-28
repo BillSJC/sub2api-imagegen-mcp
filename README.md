@@ -40,12 +40,15 @@ npm --version
 
 ```bash
 cd /你准备存放源码的绝对父目录
-git clone git@github.com:BillSJC/sub2api-imagegen-mcp.git
+git clone https://github.com/BillSJC/sub2api-imagegen-mcp.git
 cd sub2api-imagegen-mcp
 npm ci
 npm run check
 npm run build
 ```
+
+公开仓库通过 HTTPS 克隆不需要 GitHub 凭据。已经配置 GitHub SSH 的机器也可以
+改用 `git@github.com:BillSJC/sub2api-imagegen-mcp.git`。
 
 构建产物是 `dist/index.js`。升级时执行：
 
