@@ -13,7 +13,13 @@ The server reads a Sub2API key at runtime from exactly one source:
 
 The key is used only in the outbound `Authorization` header. It is omitted from
 configuration diagnostics, MCP results, and expected logs. CI also runs a
-best-effort secret scan, but that scan is not a substitute for review.
+best-effort scan across current files and all reachable Git history objects;
+CI uses a full-history checkout for this purpose. That scan is not a substitute
+for review.
+
+Deleting a credential in a later commit does not remove it from public Git
+history. If a real secret is ever committed, revoke or rotate it immediately,
+then follow GitHub's documented history-rewrite and cache-removal process.
 
 The one-click installer does not accept a key as a command-line option. In
 interactive mode it reads the key without terminal echo and stores it outside
