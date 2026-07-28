@@ -431,24 +431,17 @@ try {
   $npmCommand = Get-ExecutablePath -DisplayName "npm.cmd" -Candidates @("npm.cmd")
   $gitCommand = Get-ExecutablePath -DisplayName "git.exe" -Candidates @("git.exe")
 
-  $versionCheck = @'
-const current = process.versions.node.split(".").map(Number);
-const minimum = process.argv[1].split(".").map(Number);
-for (let index = 0; index < 3; index += 1) {
-  if (current[index] > minimum[index]) process.exit(0);
-  if (current[index] < minimum[index]) process.exit(1);
-}
-'@
+  $foundVersion = Get-NativeText -FilePath $nodeCommand -ArgumentList @(
+    "--version"
+  ) -DisplayName "node --version"
   try {
-    Invoke-NativeCommand -FilePath $nodeCommand -ArgumentList @(
-      "-e",
-      $versionCheck,
-      $minimumNodeVersion
-    ) -DisplayName "Node.js version check"
+    $normalizedNodeVersion = ($foundVersion.Trim().TrimStart([char]"v") -split "-", 2)[0]
+    $currentNodeVersion = [Version]::Parse($normalizedNodeVersion)
+    $requiredNodeVersion = [Version]::Parse($minimumNodeVersion)
   } catch {
-    $foundVersion = Get-NativeText -FilePath $nodeCommand -ArgumentList @(
-      "--version"
-    ) -DisplayName "node --version"
+    throw "Node.js returned an invalid version: $foundVersion."
+  }
+  if ($currentNodeVersion -lt $requiredNodeVersion) {
     throw "Node.js $minimumNodeVersion or newer is required; found $foundVersion."
   }
   $nodePath = Get-NativeText -FilePath $nodeCommand -ArgumentList @(
