@@ -1,6 +1,6 @@
 {
   "name": "sub2api-imagegen-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "A credential-safe local MCP server for image generation and editing through Sub2API.",
   "type": "module",
@@ -9,6 +9,7 @@
   },
   "files": [
     "dist",
+    "install.ps1",
     "install.sh",
     "README.md",
     "SECURITY.md",
@@ -33,7 +34,7 @@
     "dev": "tsx src/index.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "installer:check": "bash -n install.sh",
+    "installer:check": "node scripts/check-installers.mjs",
     "lint": "eslint .",
     "secrets:check": "node scripts/check-secrets.mjs",
     "smoke:stdio": "node scripts/stdio-smoke.mjs",

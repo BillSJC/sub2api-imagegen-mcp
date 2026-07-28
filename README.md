@@ -17,23 +17,42 @@
 
 ## 一键安装
 
-要求 macOS/Linux、Node.js `>=20.19.0`、Git、curl、npm，以及可执行
-`codex mcp` 的 Codex：
+要求 Node.js `>=20.19.0`、Git、npm，以及可执行 `codex mcp` 的 Codex。
+
+### Windows 原生
+
+在普通权限的 Windows PowerShell 5.1 或 PowerShell 7 中运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.ps1' | iex"
+```
+
+Key 默认保存在
+`%LOCALAPPDATA%\sub2api-imagegen-mcp\secrets\sub2api-api.key`，安装器会关闭权限继承，
+只授权当前 Windows 用户。源码默认安装到
+`%LOCALAPPDATA%\sub2api-imagegen-mcp\app`，图片输出到用户的
+`Pictures\Sub2API`。重复运行同一命令即可升级。
+
+### macOS / Linux / WSL2
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh | bash
 ```
 
 按提示输入 Sub2API 地址和 Key。Key 会保存在仓库外的
-`~/.config/sub2api-imagegen-mcp/sub2api-api.key`（`0600`），不会写入
-`config.toml`、仓库或命令历史。安装器会自动构建 MCP、备份并更新 Codex 配置；
-失败时恢复原配置。
+`~/.config/sub2api-imagegen-mcp/sub2api-api.key`（`0600`）。两个安装器都不会把
+Key 写入 `config.toml`、仓库或命令历史；配置失败时会恢复原文件。
 
 安装后完全重启 Codex，新建任务并运行 `/mcp`，确认 `sub2api_imagegen` 已连接。
-重复执行同一命令即可升级。
+重复执行对应平台的一键命令即可升级。
 
 默认上游超时为 10 分钟，Codex 工具超时为 11 分钟。大图或高质量任务可升级并
 提高到最大 15/16 分钟：
+
+```powershell
+$env:SUB2API_TIMEOUT_MS = "900000"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.ps1' | iex"
+```
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh |
@@ -110,7 +129,16 @@ output_name: raincoat-cat-mint
 
 ### 安装器进阶用法
 
-无人值守安装建议预先准备仓库外的 `0600` Key 文件：
+Windows 无人值守安装应先准备一个仅当前用户可读的 Key 文件：
+
+```powershell
+$env:SUB2API_BASE_URL = "https://sub2api.example.com/v1"
+$env:SUB2API_API_KEY_FILE = "$env:LOCALAPPDATA\sub2api-imagegen-mcp\secrets\sub2api-api.key"
+$env:SUB2API_TIMEOUT_MS = "900000"
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.ps1"))) -NonInteractive
+```
+
+macOS、Linux 或 WSL2 无人值守安装：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh |
@@ -120,14 +148,23 @@ curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/i
   bash -s -- --non-interactive
 ```
 
-查看所有选项：
+需要先审阅 Windows 脚本时：
+
+```powershell
+$installer = "$env:TEMP\sub2api-imagegen-mcp-install.ps1"
+irm "https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.ps1" -OutFile $installer
+notepad $installer
+powershell -NoProfile -ExecutionPolicy Bypass -File $installer
+```
+
+查看 macOS/Linux 选项：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh |
   bash -s -- --help
 ```
 
-需要先审阅脚本时：
+需要先审阅 macOS/Linux 脚本时：
 
 ```bash
 curl -fL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh \
@@ -154,8 +191,9 @@ npm run check
 npm run build
 ```
 
-将 Key 放在仓库外的私有普通文件中，目录权限设为 `0700`，文件权限设为
-`0600`。不要把真实 Key 放进下面的 TOML：
+将 Key 放在仓库外的私有普通文件中。POSIX 目录/文件权限分别设为 `0700` 和
+`0600`；Windows 使用仅当前用户可访问的受保护 ACL。不要把真实 Key 放进下面的
+TOML：
 
 ```toml
 [mcp_servers.sub2api_imagegen]
@@ -185,6 +223,16 @@ SUB2API_API_KEY_FILE="/Key文件绝对路径" \
 SUB2API_IMAGE_OUTPUT_DIR="/图片输出目录绝对路径" \
 SUB2API_TIMEOUT_MS=600000 \
 node /仓库绝对路径/dist/index.js --check-config
+```
+
+Windows PowerShell 对应写法：
+
+```powershell
+$env:SUB2API_BASE_URL = "https://sub2api.example.com/v1"
+$env:SUB2API_API_KEY_FILE = "C:\Key文件绝对路径\sub2api-api.key"
+$env:SUB2API_IMAGE_OUTPUT_DIR = "C:\图片输出目录"
+$env:SUB2API_TIMEOUT_MS = "600000"
+node "C:\仓库绝对路径\dist\index.js" --check-config
 ```
 
 ### 工具参数
@@ -229,7 +277,7 @@ node /仓库绝对路径/dist/index.js --check-config
 | ------------------------------ | ----------------------------------------------------------------------------------------- |
 | 仍提示 `image_gen` 未注入      | 这是不同工具；在 `/mcp` 中确认并明确调用 `sub2api_imagegen.imagegen`，重启后使用新任务    |
 | MCP 不出现                     | 检查 `codex mcp get sub2api_imagegen --json`、绝对路径、`dist/index.js` 和客户端 MCP 日志 |
-| `invalid_config`               | 只设置一个 Key 来源；Key 文件必须是绝对路径、普通文件、非符号链接且权限为 `0600`          |
+| `invalid_config`               | 只设置一个 Key 来源；Key 文件必须是绝对路径、普通文件、非链接；POSIX 权限须为 `0600`      |
 | HTTP 401/403                   | 检查 Key、余额、用户/分组状态、图片权限和支持图片模型的上游账号                           |
 | HTTP 404                       | 检查 Sub2API 地址以及实例是否注册 `/v1/images/generations` 和 `/v1/images/edits`          |
 | 10 分钟仍超时                  | 升级时设置 `SUB2API_TIMEOUT_MS=900000`；超时后先查请求与计费，未经确认不要重试            |
@@ -243,6 +291,6 @@ npm ci
 npm run check
 ```
 
-测试使用模拟响应，不需要真实 Key，也不会产生费用。CI 会扫描当前文件及完整 Git
-历史中的常见凭据模式；若真实凭据曾进入公开历史，必须立即撤销/轮换，不能只在后续
-提交中删除。完整安全边界见 [SECURITY.md](SECURITY.md)。
+测试使用模拟响应，不需要真实 Key，也不会产生费用。CI 在 Ubuntu 和 Windows
+执行验证，并扫描当前文件及完整 Git 历史中的常见凭据模式；若真实凭据曾进入公开
+历史，必须立即撤销/轮换。完整安全边界见 [SECURITY.md](SECURITY.md)。

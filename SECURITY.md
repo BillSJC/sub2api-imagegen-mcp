@@ -9,7 +9,8 @@ The server reads a Sub2API key at runtime from exactly one source:
 
 - `SUB2API_API_KEY`, inherited by the local MCP process; or
 - `SUB2API_API_KEY_FILE`, an absolute path to a non-symlink regular file with
-  mode `0600` on POSIX systems.
+  mode `0600` on POSIX systems. The native Windows installer instead applies a
+  protected ACL that grants access only to the current user.
 
 The key is used only in the outbound `Authorization` header. It is omitted from
 configuration diagnostics, MCP results, and expected logs. CI also runs a
@@ -21,12 +22,13 @@ Deleting a credential in a later commit does not remove it from public Git
 history. If a real secret is ever committed, revoke or rotate it immediately,
 then follow GitHub's documented history-rewrite and cache-removal process.
 
-The one-click installer does not accept a key as a command-line option. In
-interactive mode it reads the key without terminal echo and stores it outside
-the repository in a mode-`0600` regular file. For unattended use, an existing
-private key file is preferred over `SUB2API_API_KEY`. The installer removes an
-inherited inline key from its environment before starting build, Git, Codex, or
-MCP subprocesses.
+The one-click installers do not accept a key as a command-line option. In
+interactive mode they read the key without terminal echo and store it outside
+the repository. POSIX uses mode `0600`; Windows disables ACL inheritance and
+grants full control only to the current user SID. For unattended use, an
+existing private key file is preferred over `SUB2API_API_KEY`. Installers remove
+an inherited inline key from their environment before starting build, Git,
+Codex, or MCP subprocesses.
 
 Before changing Codex MCP registration, the installer creates a private
 timestamped backup of `config.toml`. A registration failure restores the

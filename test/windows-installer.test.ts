@@ -1,16 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import {
-  chmod,
-  cp,
-  mkdtemp,
-  mkdir,
-  readFile,
-  readdir,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,20 +9,46 @@ import test from "node:test";
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const powershellInstaller = path.join(repositoryRoot, "install.ps1");
 
 async function runInstaller(
   installerPath: string,
   environment: NodeJS.ProcessEnv,
   expectFailure = false,
+  shell: "windows-powershell" | "powershell-7" = "windows-powershell",
 ) {
+  const powershellPath =
+    shell === "powershell-7"
+      ? "pwsh.exe"
+      : path.join(
+          environment.SystemRoot ?? "C:\\Windows",
+          "System32",
+          "WindowsPowerShell",
+          "v1.0",
+          "powershell.exe",
+        );
   try {
-    const result = await execFileAsync("bash", [installerPath, "--non-interactive"], {
-      env: environment,
-      maxBuffer: 10 * 1024 * 1024,
-      timeout: 180_000,
-    });
+    const result = await execFileAsync(
+      powershellPath,
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        installerPath,
+        "-NonInteractive",
+      ],
+      {
+        env: environment,
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: 240_000,
+        windowsHide: true,
+      },
+    );
     if (expectFailure) {
-      assert.fail("installer unexpectedly succeeded");
+      assert.fail("PowerShell installer unexpectedly succeeded");
     }
     return `${result.stdout}${result.stderr}`;
   } catch (error) {
@@ -44,11 +60,22 @@ async function runInstaller(
   }
 }
 
+test("PowerShell installer keeps API keys out of command-line parameters", async () => {
+  const source = await readFile(powershellInstaller, "utf8");
+  const parameterBlock = source.slice(0, source.indexOf("Set-StrictMode"));
+
+  assert.doesNotMatch(parameterBlock, /\$ApiKey(?:\s|=|,)/);
+  assert.match(source, /Read-Host -Prompt \$Prompt -AsSecureString/);
+  assert.match(source, /Remove-Item Env:SUB2API_API_KEY/);
+  assert.match(source, /Set-PrivateFileAcl/);
+  assert.match(source, /config\.toml\.backup\./);
+});
+
 test(
-  "installer is idempotent, keeps the key external, and restores config on failure",
-  { skip: process.platform === "win32" },
+  "native Windows installer is idempotent, protects the key, and restores config",
+  { skip: process.platform !== "win32" },
   async (context) => {
-    const temporaryDir = await mkdtemp(path.join(os.tmpdir(), "sub2api-installer-"));
+    const temporaryDir = await mkdtemp(path.join(os.tmpdir(), "sub2api-win-installer-"));
     context.after(() => rm(temporaryDir, { force: true, recursive: true }));
     const sourceDir = path.join(temporaryDir, "source");
     const excluded = new Set([".git", "dist", "generated-images", "node_modules"]);
@@ -61,37 +88,44 @@ test(
       recursive: true,
     });
 
-    const installerPath = path.join(sourceDir, "install.sh");
+    const installerPath = path.join(sourceDir, "install.ps1");
     const fakeCodexPath = path.join(sourceDir, "test", "fake-codex.mjs");
-    await chmod(installerPath, 0o755);
-    await chmod(fakeCodexPath, 0o755);
+    const fakeCodexWrapper = path.join(sourceDir, "test", "fake-codex.cmd");
+    await writeFile(
+      fakeCodexWrapper,
+      '@echo off\r\n"%SUB2API_TEST_NODE%" "%SUB2API_TEST_FAKE_CODEX%" %*\r\n',
+      "utf8",
+    );
 
     const homeDir = path.join(temporaryDir, "home");
     const codexHome = path.join(homeDir, ".codex");
-    await mkdir(codexHome, { mode: 0o700, recursive: true });
+    const outputDir = path.join(homeDir, "Pictures", "Sub2API");
+    const keyPath = path.join(homeDir, "private", "sub2api-api.key");
+    await mkdir(codexHome, { recursive: true });
     const configPath = path.join(codexHome, "config.toml");
     await writeFile(
       configPath,
       `model = "existing-model"
 
 [mcp_servers.keep]
-command = "/usr/bin/true"
+command = "cmd.exe"
 `,
-      { mode: 0o600 },
+      "utf8",
     );
 
-    const testKey = "installer-test-placeholder-value";
+    const testKey = "windows-installer-test-placeholder";
     const baseEnvironment: NodeJS.ProcessEnv = {
       ...process.env,
       CODEX_HOME: codexHome,
-      HOME: homeDir,
+      SUB2API_API_KEY_FILE: keyPath,
       SUB2API_BASE_URL: "http://127.0.0.1:3099/v1",
       SUB2API_IMAGE_MODEL: "gpt-image-2",
-      SUB2API_MCP_CODEX_BIN: fakeCodexPath,
+      SUB2API_IMAGE_OUTPUT_DIR: outputDir,
+      SUB2API_MCP_CODEX_BIN: fakeCodexWrapper,
       SUB2API_MCP_NO_UPDATE: "1",
+      SUB2API_TEST_FAKE_CODEX: fakeCodexPath,
+      SUB2API_TEST_NODE: process.execPath,
       SUB2API_TIMEOUT_MS: "900000",
-      XDG_CONFIG_HOME: path.join(homeDir, ".config"),
-      XDG_DATA_HOME: path.join(homeDir, ".local", "share"),
     };
 
     const invalidTimeoutOutput = await runInstaller(
@@ -101,15 +135,35 @@ command = "/usr/bin/true"
     );
     assert.match(invalidTimeoutOutput, /between 1000 and 900000 milliseconds/);
 
-    const firstOutput = await runInstaller(installerPath, {
-      ...baseEnvironment,
-      SUB2API_API_KEY: testKey,
-    });
+    const firstOutput = await runInstaller(
+      installerPath,
+      {
+        ...baseEnvironment,
+        SUB2API_API_KEY: testKey,
+      },
+      false,
+      "powershell-7",
+    );
     assert.equal(firstOutput.includes(testKey), false);
-
-    const keyPath = path.join(homeDir, ".config", "sub2api-imagegen-mcp", "sub2api-api.key");
     assert.equal((await readFile(keyPath, "utf8")).trim(), testKey);
-    assert.equal((await stat(keyPath)).mode & 0o777, 0o600);
+
+    const keyAclOutput = await execFileAsync(
+      path.join(
+        process.env.SystemRoot ?? "C:\\Windows",
+        "System32",
+        "WindowsPowerShell",
+        "v1.0",
+        "powershell.exe",
+      ),
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        `(Get-Acl -LiteralPath '${keyPath.replaceAll("'", "''")}').AreAccessRulesProtected`,
+      ],
+      { windowsHide: true },
+    );
+    assert.equal(keyAclOutput.stdout.trim().toLowerCase(), "true");
 
     const firstConfig = await readFile(configPath, "utf8");
     assert.match(firstConfig, /model = "existing-model"/);
@@ -118,7 +172,7 @@ command = "/usr/bin/true"
     assert.match(firstConfig, /tool_timeout_sec = 960/);
     assert.match(firstConfig, /default_tools_approval_mode = "writes"/);
     assert.match(firstConfig, /SUB2API_TIMEOUT_MS = "900000"/);
-    assert.equal(firstConfig.includes(keyPath), true);
+    assert.equal(firstConfig.includes(keyPath.replaceAll("\\", "\\\\")), true);
     assert.equal(firstConfig.includes(testKey), false);
 
     const secondOutput = await runInstaller(installerPath, baseEnvironment);
