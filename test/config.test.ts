@@ -18,6 +18,7 @@ test("loadConfig accepts one inline key and normalizes an origin to /v1/", async
   assert.equal(config.baseUrl.toString(), "https://sub2api.example.test/v1/");
   assert.equal(config.credentialSource, "environment");
   assert.equal(config.model, "gpt-image-2");
+  assert.equal(config.timeoutMs, 600_000);
   assert.equal(redactedConfig(config).credential_source, "environment");
   assert.equal(JSON.stringify(redactedConfig(config)).includes(config.apiKey), false);
 });
@@ -96,5 +97,26 @@ test("loadConfig permits HTTP only for loopback testing", async () => {
       SUB2API_BASE_URL: "http://sub2api.example.test",
     }),
     /must use HTTPS/,
+  );
+});
+
+test("loadConfig accepts a timeout up to fifteen minutes", async () => {
+  const baseEnv = {
+    SUB2API_API_KEY: "placeholder",
+    SUB2API_BASE_URL: "https://sub2api.example.test",
+    SUB2API_IMAGE_OUTPUT_DIR: path.join(os.tmpdir(), "sub2api-output"),
+  };
+  const maximum = await loadConfig({
+    ...baseEnv,
+    SUB2API_TIMEOUT_MS: "900000",
+  });
+  assert.equal(maximum.timeoutMs, 900_000);
+
+  await assert.rejects(
+    loadConfig({
+      ...baseEnv,
+      SUB2API_TIMEOUT_MS: "900001",
+    }),
+    /between 1000 and 900000/,
   );
 });

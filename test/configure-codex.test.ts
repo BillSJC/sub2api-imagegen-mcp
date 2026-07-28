@@ -30,6 +30,7 @@ SUB2API_BASE_URL = "https://sub2api.example.test/v1"
     configPath,
     cwd: "/opt/sub2api-imagegen-mcp",
     server: "sub2api_imagegen",
+    toolTimeoutSec: 660,
   };
   await configureCodexMcpOptions(options);
   const first = await readFile(configPath, "utf8");
@@ -40,7 +41,7 @@ SUB2API_BASE_URL = "https://sub2api.example.test/v1"
   assert.match(first, /model = "test-model"/);
   assert.match(first, /\[mcp_servers\.other\]\ncommand = "other-server"/);
   assert.match(first, /cwd = "\/opt\/sub2api-imagegen-mcp"/);
-  assert.match(first, /tool_timeout_sec = 360/);
+  assert.match(first, /tool_timeout_sec = 660/);
   assert.match(first, /default_tools_approval_mode = "writes"/);
   assert.equal((first.match(/tool_timeout_sec\s*=/g) ?? []).length, 1);
   assert.equal((first.match(/\[mcp_servers\.sub2api_imagegen\]/g) ?? []).length, 1);
@@ -69,7 +70,31 @@ command = "two"
       configPath,
       cwd: "/opt/sub2api-imagegen-mcp",
       server: "sub2api_imagegen",
+      toolTimeoutSec: 660,
     }),
     /Expected exactly one/,
+  );
+});
+
+test("configureCodexMcpOptions rejects an unsafe tool timeout", async (context) => {
+  const temporaryDir = await mkdtemp(path.join(os.tmpdir(), "sub2api-codex-config-"));
+  context.after(() => rm(temporaryDir, { force: true, recursive: true }));
+  const configPath = path.join(temporaryDir, "config.toml");
+  await writeFile(
+    configPath,
+    `[mcp_servers.sub2api_imagegen]
+command = "one"
+`,
+    { mode: 0o600 },
+  );
+
+  await assert.rejects(
+    configureCodexMcpOptions({
+      configPath,
+      cwd: "/opt/sub2api-imagegen-mcp",
+      server: "sub2api_imagegen",
+      toolTimeoutSec: 3601,
+    }),
+    /between 1 and 3600/,
   );
 });

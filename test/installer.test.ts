@@ -86,9 +86,17 @@ command = "/usr/bin/true"
     SUB2API_IMAGE_MODEL: "gpt-image-2",
     SUB2API_MCP_CODEX_BIN: fakeCodexPath,
     SUB2API_MCP_NO_UPDATE: "1",
+    SUB2API_TIMEOUT_MS: "900000",
     XDG_CONFIG_HOME: path.join(homeDir, ".config"),
     XDG_DATA_HOME: path.join(homeDir, ".local", "share"),
   };
+
+  const invalidTimeoutOutput = await runInstaller(
+    installerPath,
+    { ...baseEnvironment, SUB2API_TIMEOUT_MS: "900001" },
+    true,
+  );
+  assert.match(invalidTimeoutOutput, /between 1000 and 900000 milliseconds/);
 
   const firstOutput = await runInstaller(installerPath, {
     ...baseEnvironment,
@@ -106,8 +114,9 @@ command = "/usr/bin/true"
   assert.match(firstConfig, /model = "existing-model"/);
   assert.match(firstConfig, /\[mcp_servers\.keep\]/);
   assert.match(firstConfig, /\[mcp_servers\.sub2api_imagegen\]/);
-  assert.match(firstConfig, /tool_timeout_sec = 360/);
+  assert.match(firstConfig, /tool_timeout_sec = 960/);
   assert.match(firstConfig, /default_tools_approval_mode = "writes"/);
+  assert.match(firstConfig, /SUB2API_TIMEOUT_MS = "900000"/);
   assert.equal(firstConfig.includes(keyPath), true);
   assert.equal(firstConfig.includes(testKey), false);
 

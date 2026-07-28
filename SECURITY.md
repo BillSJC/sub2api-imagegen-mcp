@@ -43,6 +43,9 @@ existing Codex config, so it must remain private as well.
 - Generated files use collision-safe names and private file permissions.
 - Generation is intentionally not retried automatically because a retry can
   duplicate cost.
+- A local timeout does not prove that the upstream job was cancelled. The MCP
+  tells the host not to retry without explicit user confirmation; operators
+  should check Sub2API request and billing state first.
 
 Piping a remote installer directly to a shell trusts the current default branch
 of this repository. Review a downloaded copy first when the environment

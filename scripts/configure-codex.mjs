@@ -29,7 +29,7 @@ function parseArguments(args) {
   const parsed = {};
   for (let index = 0; index < args.length; index += 1) {
     const name = args[index];
-    if (!["--config", "--cwd", "--server"].includes(name)) {
+    if (!["--config", "--cwd", "--server", "--tool-timeout-sec"].includes(name)) {
       throw new Error(`Unknown argument: ${name}`);
     }
     const value = args[index + 1];
@@ -39,7 +39,7 @@ function parseArguments(args) {
     parsed[name.slice(2)] = value;
     index += 1;
   }
-  for (const required of ["config", "cwd", "server"]) {
+  for (const required of ["config", "cwd", "server", "tool-timeout-sec"]) {
     if (parsed[required] === undefined) {
       throw new Error(`--${required} is required.`);
     }
@@ -47,7 +47,7 @@ function parseArguments(args) {
   return parsed;
 }
 
-function updateServerSection(source, { cwd, server }) {
+function updateServerSection(source, { cwd, server, toolTimeoutSec }) {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const hadFinalNewline = source.endsWith("\n");
   const lines = source.split(/\r?\n/);
@@ -96,7 +96,7 @@ function updateServerSection(source, { cwd, server }) {
     "enabled = true",
     "required = true",
     "startup_timeout_sec = 10",
-    "tool_timeout_sec = 360",
+    `tool_timeout_sec = ${toolTimeoutSec}`,
     'default_tools_approval_mode = "writes"',
   ];
   const replacement = [...retained, ...managedLines, ""];
@@ -105,12 +105,15 @@ function updateServerSection(source, { cwd, server }) {
   return hadFinalNewline ? `${updated}${newline}` : updated;
 }
 
-export async function configureCodexMcpOptions({ configPath, cwd, server }) {
+export async function configureCodexMcpOptions({ configPath, cwd, server, toolTimeoutSec }) {
   if (!path.isAbsolute(configPath) || !path.isAbsolute(cwd)) {
     throw new Error("Config and cwd paths must be absolute.");
   }
   if (!/^[A-Za-z0-9_-]+$/.test(server)) {
     throw new Error("Server name contains unsupported characters.");
+  }
+  if (!Number.isSafeInteger(toolTimeoutSec) || toolTimeoutSec < 1 || toolTimeoutSec > 3600) {
+    throw new Error("Tool timeout must be an integer between 1 and 3600 seconds.");
   }
 
   const metadata = await lstat(configPath);
@@ -123,7 +126,7 @@ export async function configureCodexMcpOptions({ configPath, cwd, server }) {
 
   const bytes = await readFile(configPath);
   const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  const updated = updateServerSection(source, { cwd, server });
+  const updated = updateServerSection(source, { cwd, server, toolTimeoutSec });
   const temporaryPath = `${configPath}.${process.pid}.${randomUUID()}.tmp`;
   let temporaryFile;
   try {
@@ -146,6 +149,7 @@ async function main() {
     configPath: args.config,
     cwd: args.cwd,
     server: args.server,
+    toolTimeoutSec: Number(args["tool-timeout-sec"]),
   });
   process.stdout.write(`Configured Codex MCP options for ${args.server}.\n`);
 }

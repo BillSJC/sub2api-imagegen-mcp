@@ -155,6 +155,11 @@ test("client timeout covers a stalled response body", async (context) => {
       quality: "auto",
       size: "auto",
     }),
-    /did not respond within 100 ms/,
+    (error: unknown) => {
+      assert(error instanceof Error);
+      assert.match(error.message, /did not respond within 100 ms/);
+      assert.match(error.message, /may still be running or billable/);
+      return true;
+    },
   );
 });

@@ -212,7 +212,8 @@ export class Sub2ApiImageClient {
       if (controller.signal.aborted) {
         throw new SafeError(
           "upstream_timeout",
-          `Sub2API did not respond within ${this.#config.timeoutMs} ms.`,
+          `Sub2API did not respond within ${this.#config.timeoutMs} ms. ` +
+            "The upstream job may still be running or billable; check Sub2API before retrying.",
           { cause: error },
         );
       }

@@ -11,6 +11,7 @@ base_url="${SUB2API_BASE_URL-}"
 key_file="${SUB2API_API_KEY_FILE-}"
 output_dir="${SUB2API_IMAGE_OUTPUT_DIR-}"
 model="${SUB2API_IMAGE_MODEL-gpt-image-2}"
+timeout_ms="${SUB2API_TIMEOUT_MS-600000}"
 install_dir="${SUB2API_MCP_INSTALL_DIR-}"
 repository="${SUB2API_MCP_REPOSITORY_URL-$DEFAULT_REPOSITORY}"
 repository_ref="${SUB2API_MCP_REF-main}"
@@ -41,6 +42,7 @@ Options:
   --install-dir PATH   Installation directory
   --output-dir PATH    Generated image directory
   --model MODEL        Image model (default: gpt-image-2)
+  --timeout-ms MS      Upstream timeout, 1000-900000 (default: 600000)
   --repository URL     Git repository used by bootstrap mode
   --ref NAME           Git branch used by bootstrap mode (default: main)
   --non-interactive    Never prompt; require URL and key input from env/options
@@ -148,6 +150,11 @@ while [[ $# -gt 0 ]]; do
       model="$2"
       shift 2
       ;;
+    --timeout-ms)
+      [[ $# -ge 2 ]] || die "--timeout-ms requires a value."
+      timeout_ms="$2"
+      shift 2
+      ;;
     --repository)
       [[ $# -ge 2 ]] || die "--repository requires a value."
       repository="$2"
@@ -216,8 +223,17 @@ for entry in \
 done
 reject_control_characters "Sub2API base URL" "$base_url"
 reject_control_characters "model" "$model"
+reject_control_characters "timeout" "$timeout_ms"
 reject_control_characters "repository" "$repository"
 reject_control_characters "repository ref" "$repository_ref"
+if [[ ! "$timeout_ms" =~ ^[0-9]{1,6}$ ]]; then
+  die "Timeout must be an integer between 1000 and 900000 milliseconds."
+fi
+timeout_ms="$((10#$timeout_ms))"
+if ((timeout_ms < 1000 || timeout_ms > 900000)); then
+  die "Timeout must be between 1000 and 900000 milliseconds."
+fi
+tool_timeout_sec="$(((timeout_ms + 999) / 1000 + 60))"
 
 require_command node
 require_command npm
@@ -344,6 +360,7 @@ SUB2API_BASE_URL="$base_url" \
   SUB2API_API_KEY_FILE="$key_file" \
   SUB2API_IMAGE_OUTPUT_DIR="$output_dir" \
   SUB2API_IMAGE_MODEL="$model" \
+  SUB2API_TIMEOUT_MS="$timeout_ms" \
   "$node_path" "$install_dir/dist/index.js" --check-config
 
 mkdir -p "$codex_home"
@@ -375,12 +392,14 @@ fi
   --env "SUB2API_API_KEY_FILE=$key_file" \
   --env "SUB2API_IMAGE_OUTPUT_DIR=$output_dir" \
   --env "SUB2API_IMAGE_MODEL=$model" \
+  --env "SUB2API_TIMEOUT_MS=$timeout_ms" \
   -- "$node_path" "$install_dir/dist/index.js"
 
 "$node_path" "$install_dir/scripts/configure-codex.mjs" \
   --config "$config_path" \
   --cwd "$install_dir" \
-  --server "$SERVER_NAME"
+  --server "$SERVER_NAME" \
+  --tool-timeout-sec "$tool_timeout_sec"
 chmod 600 "$config_path"
 "$codex_bin" mcp get "$SERVER_NAME" --json >/dev/null
 config_committed=1
@@ -390,4 +409,5 @@ log "MCP server: $SERVER_NAME"
 log "Install directory: $install_dir"
 log "API key file: $key_file"
 log "Image output directory: $output_dir"
+log "Timeouts: Sub2API ${timeout_ms} ms; Codex tool ${tool_timeout_sec} seconds"
 log "Restart ChatGPT/Codex, start a new task, and run /mcp to confirm imagegen."

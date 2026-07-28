@@ -1,6 +1,6 @@
 {
   "name": "sub2api-imagegen-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "A credential-safe local MCP server for image generation and editing through Sub2API.",
   "type": "module",

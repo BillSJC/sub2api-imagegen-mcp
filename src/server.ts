@@ -56,7 +56,8 @@ export function createServer(
       instructions:
         "Use imagegen only when the user explicitly requests image generation or editing. " +
         "The tool calls an external Sub2API service that may incur cost. " +
-        "Never ask for or echo an API key. Reference image paths must be absolute local paths.",
+        "Never ask for or echo an API key. Reference image paths must be absolute local paths. " +
+        "Never retry an error or timeout unless the user explicitly confirms a new billable attempt.",
     },
   );
 
@@ -71,7 +72,8 @@ export function createServer(
       },
       description:
         "Generate a new image through Sub2API, or edit up to five local reference images. " +
-        "Returns an MCP image and saves a private local copy.",
+        "Returns an MCP image and saves a private local copy. Each call may incur cost; " +
+        "do not retry a failure without explicit user approval.",
       inputSchema: imageInputSchema,
       outputSchema: imageOutputSchema,
       title: "Sub2API Image Generation",

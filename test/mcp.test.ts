@@ -36,6 +36,7 @@ test("MCP exposes imagegen and returns an image plus a local path", async (conte
     listed.tools.map((tool) => tool.name),
     ["imagegen"],
   );
+  assert.match(listed.tools[0]?.description ?? "", /do not retry a failure/i);
   const result = await client.callTool({
     arguments: {
       output_name: "mcp-canary",

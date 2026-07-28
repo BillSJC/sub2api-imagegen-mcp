@@ -4,7 +4,7 @@ import path from "node:path";
 import { SafeError } from "./errors.js";
 
 const DEFAULT_MODEL = "gpt-image-2";
-const DEFAULT_TIMEOUT_MS = 300_000;
+const DEFAULT_TIMEOUT_MS = 600_000;
 const DEFAULT_MAX_INPUT_IMAGE_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_RESPONSE_BYTES = 40 * 1024 * 1024;
 
