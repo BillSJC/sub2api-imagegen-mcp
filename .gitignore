@@ -9,6 +9,7 @@ generated-images/
 *.jpg
 *.jpeg
 *.webp
+!docs/assets/sub2api-imagegen-banner.jpg
 
 # Credentials and local configuration
 .env
