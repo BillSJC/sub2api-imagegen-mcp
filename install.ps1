@@ -315,6 +315,13 @@ if (
 ) {
   throw "Windows PowerShell 5.1 or PowerShell 7 or newer is required."
 }
+$securityModuleManifest = Join-Path $PSHOME (
+  "Modules\Microsoft.PowerShell.Security\Microsoft.PowerShell.Security.psd1"
+)
+if (-not (Test-Path -LiteralPath $securityModuleManifest -PathType Leaf)) {
+  throw "The built-in Microsoft.PowerShell.Security module is unavailable."
+}
+Import-Module -Name $securityModuleManifest -ErrorAction Stop
 
 $trackedEnvironmentNames = @(
   "CODEX_HOME",

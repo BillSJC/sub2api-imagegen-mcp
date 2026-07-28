@@ -148,13 +148,7 @@ command = "cmd.exe"
     assert.equal((await readFile(keyPath, "utf8")).trim(), testKey);
 
     const keyAclOutput = await execFileAsync(
-      path.join(
-        process.env.SystemRoot ?? "C:\\Windows",
-        "System32",
-        "WindowsPowerShell",
-        "v1.0",
-        "powershell.exe",
-      ),
+      "pwsh.exe",
       [
         "-NoProfile",
         "-NonInteractive",
