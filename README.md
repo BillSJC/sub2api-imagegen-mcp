@@ -23,7 +23,8 @@ MCP 工具 `imagegen`，不是修复或伪装成宿主内置的 `image_gen`。Su
 ## 前置条件
 
 - Node.js `20.19.0` 或更高版本（推荐当前 LTS 或 Node.js 24）
-- Git
+- Git、curl、npm
+- 可在终端执行 `codex mcp` 的 Codex CLI / 桌面版
 - 一个可用的 Sub2API 地址和 API Key
 - API Key 所属分组已开启图片生成权限，且有可用余额/额度与支持图片模型的上游账号
 
@@ -34,7 +35,82 @@ node --version
 npm --version
 ```
 
-## 安装
+## 一键安装（推荐）
+
+在 macOS 或 Linux 终端运行：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh | bash
+```
+
+安装器会通过终端安全地询问 Sub2API 地址和 API Key，然后自动：
+
+1. 将公开仓库克隆或快进更新到
+   `~/.local/share/sub2api-imagegen-mcp`。
+2. 按锁文件安装依赖、构建 MCP，并移除开发依赖。
+3. 将 Key 写入仓库外的
+   `~/.config/sub2api-imagegen-mcp/sub2api-api.key`，权限设为 `0600`。
+4. 在不发送图片请求、不产生费用的前提下检查配置。
+5. 备份 `~/.codex/config.toml`，通过官方 `codex mcp` 命令注册
+   `sub2api_imagegen`，再写入图片生成所需的超时和审批设置。
+6. 若 Codex 配置步骤失败，自动恢复安装前的 `config.toml`。
+
+Key 不会出现在命令历史、仓库或 Codex `config.toml` 中。安装完成后完全重启
+ChatGPT/Codex，新建任务并运行 `/mcp`，确认 `sub2api_imagegen` 已连接且提供
+`imagegen` 工具。
+
+重复运行同一条命令就是升级；安装器只接受 Git 快进更新，不覆盖源码中的本地
+修改。每次修改 Codex 配置前都会在 `~/.codex/` 保留带时间戳的私有备份。
+
+如果希望先审阅脚本：
+
+```bash
+curl -fL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh \
+  -o /tmp/sub2api-imagegen-mcp-install.sh
+less /tmp/sub2api-imagegen-mcp-install.sh
+bash /tmp/sub2api-imagegen-mcp-install.sh
+```
+
+### 无人值守安装
+
+推荐预先创建仓库外的 `0600` Key 文件，再运行：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh |
+  env SUB2API_BASE_URL="https://sub2api.example.com/v1" \
+  SUB2API_API_KEY_FILE="$HOME/.config/sub2api-imagegen-mcp/sub2api-api.key" \
+  bash -s -- --non-interactive
+```
+
+也可下载脚本后直接执行：
+
+```bash
+SUB2API_BASE_URL="https://sub2api.example.com/v1" \
+SUB2API_API_KEY_FILE="$HOME/.config/sub2api-imagegen-mcp/sub2api-api.key" \
+bash /tmp/sub2api-imagegen-mcp-install.sh --non-interactive
+```
+
+查看全部路径和模型覆盖选项：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh |
+  bash -s -- --help
+```
+
+不要把真实 Key 作为命令行参数；安装器也没有 `--api-key` 选项。自动化环境若
+确实只能注入 Secret，可临时设置 `SUB2API_API_KEY`，安装器会将其转存到外部
+私有文件并在启动子进程前从环境中移除。
+
+### 卸载 MCP 注册项
+
+```bash
+codex mcp remove sub2api_imagegen
+```
+
+这只移除 Codex 注册项。为避免意外删除凭据，一键安装器不会自动删除 Key 文件、
+已生成图片、源码目录或 `config.toml` 备份；确认不再需要后可自行处理这些路径。
+
+## 手动安装
 
 选择一个不在其他项目内的独立目录：
 

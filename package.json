@@ -9,8 +9,11 @@
   },
   "files": [
     "dist",
+    "install.sh",
     "README.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "scripts/configure-codex.d.mts",
+    "scripts/configure-codex.mjs"
   ],
   "engines": {
     "node": ">=20.19.0"
@@ -25,11 +28,12 @@
   "homepage": "https://github.com/BillSJC/sub2api-imagegen-mcp#readme",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run smoke:stdio && npm run secrets:check",
+    "check": "npm run format:check && npm run installer:check && npm run lint && npm run typecheck && npm test && npm run build && npm run smoke:stdio && npm run secrets:check",
     "check-config": "node dist/index.js --check-config",
     "dev": "tsx src/index.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "installer:check": "bash -n install.sh",
     "lint": "eslint .",
     "secrets:check": "node scripts/check-secrets.mjs",
     "smoke:stdio": "node scripts/stdio-smoke.mjs",

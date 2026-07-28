@@ -15,6 +15,18 @@ The key is used only in the outbound `Authorization` header. It is omitted from
 configuration diagnostics, MCP results, and expected logs. CI also runs a
 best-effort secret scan, but that scan is not a substitute for review.
 
+The one-click installer does not accept a key as a command-line option. In
+interactive mode it reads the key without terminal echo and stores it outside
+the repository in a mode-`0600` regular file. For unattended use, an existing
+private key file is preferred over `SUB2API_API_KEY`. The installer removes an
+inherited inline key from its environment before starting build, Git, Codex, or
+MCP subprocesses.
+
+Before changing Codex MCP registration, the installer creates a private
+timestamped backup of `config.toml`. A registration failure restores the
+original configuration. The backup contains the same data as the user's
+existing Codex config, so it must remain private as well.
+
 ## Runtime boundaries
 
 - STDIO is the only MCP transport; the server does not open a listening port.
@@ -25,6 +37,10 @@ best-effort secret scan, but that scan is not a substitute for review.
 - Generated files use collision-safe names and private file permissions.
 - Generation is intentionally not retried automatically because a retry can
   duplicate cost.
+
+Piping a remote installer directly to a shell trusts the current default branch
+of this repository. Review a downloaded copy first when the environment
+requires a stronger software-supply-chain boundary.
 
 ## Reporting a vulnerability
 
