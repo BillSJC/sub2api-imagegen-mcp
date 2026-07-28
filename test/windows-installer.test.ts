@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { cp, mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdtemp,
+  mkdir,
+  readFile,
+  realpath,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -166,7 +176,13 @@ command = "cmd.exe"
     assert.match(firstConfig, /tool_timeout_sec = 960/);
     assert.match(firstConfig, /default_tools_approval_mode = "writes"/);
     assert.match(firstConfig, /SUB2API_TIMEOUT_MS = "900000"/);
-    assert.equal(firstConfig.includes(keyPath.replaceAll("\\", "\\\\")), true);
+    const keyAssignment = /^SUB2API_API_KEY_FILE = (.+)$/m.exec(firstConfig);
+    assert.notEqual(keyAssignment, null);
+    const configuredKeyPath = JSON.parse(keyAssignment?.[1] ?? "") as string;
+    assert.equal(
+      (await realpath(configuredKeyPath)).toLowerCase(),
+      (await realpath(keyPath)).toLowerCase(),
+    );
     assert.equal(firstConfig.includes(testKey), false);
 
     const secondOutput = await runInstaller(installerPath, baseEnvironment);

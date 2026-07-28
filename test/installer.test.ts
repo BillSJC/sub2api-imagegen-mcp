@@ -85,6 +85,8 @@ command = "/usr/bin/true"
       ...process.env,
       CODEX_HOME: codexHome,
       HOME: homeDir,
+      npm_config_cache: process.env.npm_config_cache ?? path.join(os.homedir(), ".npm"),
+      npm_config_prefer_offline: "true",
       SUB2API_BASE_URL: "http://127.0.0.1:3099/v1",
       SUB2API_IMAGE_MODEL: "gpt-image-2",
       SUB2API_MCP_CODEX_BIN: fakeCodexPath,
