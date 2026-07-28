@@ -1,0 +1,31 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Local runtime output
+generated-images/
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+auth.json
+credentials
+credentials.*
+*.key
+*.pem
+*.p12
+*.pfx
+.codex/
+config.local.*
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.swp

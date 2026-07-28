@@ -1,0 +1,54 @@
+{
+  "name": "sub2api-imagegen-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A credential-safe local MCP server for image generation and editing through Sub2API.",
+  "type": "module",
+  "bin": {
+    "sub2api-imagegen-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BillSJC/sub2api-imagegen-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BillSJC/sub2api-imagegen-mcp/issues"
+  },
+  "homepage": "https://github.com/BillSJC/sub2api-imagegen-mcp#readme",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run smoke:stdio && npm run secrets:check",
+    "check-config": "node dist/index.js --check-config",
+    "dev": "tsx src/index.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "secrets:check": "node scripts/check-secrets.mjs",
+    "smoke:stdio": "node scripts/stdio-smoke.mjs",
+    "start": "node dist/index.js",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@types/node": "^22.20.1",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.65.0"
+  }
+}
