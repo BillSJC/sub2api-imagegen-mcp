@@ -43,6 +43,8 @@ curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/i
 - 构建 MCP、更新 Codex 配置，并在失败时恢复原配置；
 - 保留 Key、配置备份和已生成图片，重复运行同一命令即可升级。
 
+**如何更新此 MCP：** 重新运行上述对应平台的一键安装命令即可。
+
 安装完成后，完全退出并重新启动 Codex，新建任务运行 `/mcp`，确认
 `sub2api_imagegen` 已连接。
 
