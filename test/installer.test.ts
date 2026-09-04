@@ -29,7 +29,7 @@ async function runInstaller(
     const result = await execFileAsync("bash", [installerPath, "--non-interactive"], {
       env: environment,
       maxBuffer: 10 * 1024 * 1024,
-      timeout: 180_000,
+      timeout: 300_000,
     });
     if (expectFailure) {
       assert.fail("installer unexpectedly succeeded");

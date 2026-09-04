@@ -571,7 +571,8 @@ try {
   Push-Location -LiteralPath $InstallDir
   try {
     Invoke-NativeCommand -FilePath $npmCommand -ArgumentList @(
-      "ci"
+      "ci",
+      "--no-audit"
     ) -DisplayName "npm ci"
     Invoke-NativeCommand -FilePath $npmCommand -ArgumentList @(
       "run",
@@ -585,7 +586,8 @@ try {
     }
     Invoke-NativeCommand -FilePath $npmCommand -ArgumentList @(
       "prune",
-      "--omit=dev"
+      "--omit=dev",
+      "--no-audit"
     ) -DisplayName "npm prune --omit=dev"
   } finally {
     Pop-Location

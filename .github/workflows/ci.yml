@@ -33,7 +33,12 @@ jobs:
           node-version: 24
 
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --no-audit
+
+      - name: Audit production dependencies
+        continue-on-error: true
+        timeout-minutes: 5
+        run: npm audit --omit=dev
 
       - name: Verify
         run: npm run check

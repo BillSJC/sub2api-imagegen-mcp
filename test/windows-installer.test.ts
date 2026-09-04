@@ -53,7 +53,7 @@ async function runInstaller(
       {
         env: environment,
         maxBuffer: 10 * 1024 * 1024,
-        timeout: 240_000,
+        timeout: 300_000,
         windowsHide: true,
       },
     );

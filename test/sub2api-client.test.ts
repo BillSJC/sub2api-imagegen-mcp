@@ -45,7 +45,7 @@ test("client sends an OpenAI-compatible generation request", async () => {
   assert.equal(result.mimeType, "image/png");
 });
 
-test("client uses the JSON edits endpoint for reference images", async () => {
+test("client pins PNG output for transparent edits", async () => {
   let capturedUrl = "";
   let capturedBody: Record<string, unknown> = {};
   const fakeFetch = (async (input: string | URL | Request, init?: RequestInit) => {
@@ -69,7 +69,10 @@ test("client uses the JSON edits endpoint for reference images", async () => {
   });
 
   assert.equal(capturedUrl, "https://sub2api.example.test/v1/images/edits");
+  assert.equal(capturedBody.background, "transparent");
   assert.deepEqual(capturedBody.images, [{ image_url: "data:image/png;base64,AAAA" }]);
+  assert.equal(capturedBody.output_format, "png");
+  assert.equal(capturedBody.response_format, "b64_json");
 });
 
 test("client redacts the API key from upstream errors", async () => {
