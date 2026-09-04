@@ -122,6 +122,8 @@ output_name: raincoat-cat-mint
 - 无参考图时调用 `/v1/images/generations`，有参考图时调用
   `/v1/images/edits`。
 - 默认模型为 `gpt-image-2`，上游必须返回 base64 图片。
+- `background: transparent` 会显式发送 `output_format: png`，避免所选上游使用不支持
+  Alpha 通道的默认输出格式；上游仍须支持当前模型的透明背景能力。
 - 参考图支持 PNG、JPEG、WebP；必须是绝对路径、普通文件且不能是符号链接。
 - MCP 不自动重试。超时不代表上游任务已取消；再次调用前先检查 Sub2API 请求和
   计费状态。
@@ -167,6 +169,7 @@ codex mcp remove sub2api_imagegen
 | `invalid_config`               | 只设置一个 Key 来源；Key 文件须为绝对路径、普通文件、非链接，并限制为当前用户可读 |
 | HTTP 401/403                   | 检查 Key、余额、分组状态、图片权限和可用模型                                      |
 | HTTP 404                       | 检查 Sub2API 地址和两个图片端点                                                   |
+| 透明背景仍返回 HTTP 400        | MCP 已显式请求 PNG；检查 Sub2API 所选模型及上游通道是否支持透明背景               |
 | 超时                           | 升级时将 `SUB2API_TIMEOUT_MS` 提高到 `900000`；先查请求与计费，未经确认不要重试   |
 | 只有 URL，没有 `b64_json`      | 确认 Sub2API/上游接受 `response_format = "b64_json"`                              |
 | `user cancelled MCP tool call` | 非交互任务无法完成 `writes` 审批；改用可交互任务，或在接受费用后调整审批策略      |

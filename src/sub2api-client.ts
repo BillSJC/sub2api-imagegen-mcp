@@ -171,6 +171,11 @@ export class Sub2ApiImageClient {
       response_format: "b64_json",
       size: request.size,
     };
+    if (request.background === "transparent") {
+      // Alpha output requires PNG or WebP. Pin PNG instead of relying on
+      // route-specific defaults in Sub2API or its selected upstream.
+      body.output_format = "png";
+    }
     if (isEdit) {
       body.images = request.imageDataUrls.map((imageUrl) => ({
         image_url: imageUrl,
