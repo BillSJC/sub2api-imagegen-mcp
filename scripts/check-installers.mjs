@@ -32,8 +32,15 @@ if (process.platform !== "win32") {
   run("bash", ["-n", bashInstaller], "Bash installer syntax check");
 }
 
-const source = readFileSync(powershellInstaller, "utf8");
-const parameterBlock = source.slice(0, source.indexOf("Set-StrictMode"));
+const bashSource = readFileSync(bashInstaller, "utf8");
+for (const required of ['"$npm_bin" ci --no-audit', '"$npm_bin" prune --omit=dev --no-audit']) {
+  if (!bashSource.includes(required)) {
+    throw new Error(`Bash installer is missing deterministic npm behavior: ${required}`);
+  }
+}
+
+const powershellSource = readFileSync(powershellInstaller, "utf8");
+const parameterBlock = powershellSource.slice(0, powershellSource.indexOf("Set-StrictMode"));
 if (/\$ApiKey(?:\s|=|,)/.test(parameterBlock)) {
   throw new Error("PowerShell installer must not accept an API key command-line parameter.");
 }
@@ -43,8 +50,13 @@ for (const required of [
   "Set-PrivateFileAcl",
   "config.toml.backup.",
 ]) {
-  if (!source.includes(required)) {
+  if (!powershellSource.includes(required)) {
     throw new Error(`PowerShell installer is missing required security behavior: ${required}`);
+  }
+}
+for (const required of [/"ci",\s*"--no-audit"/, /"prune",\s*"--omit=dev",\s*"--no-audit"/]) {
+  if (!required.test(powershellSource)) {
+    throw new Error(`PowerShell installer is missing deterministic npm behavior: ${required}`);
   }
 }
 

@@ -310,12 +310,12 @@ fi
 log "Installing locked dependencies and building MCP..."
 (
   cd "$install_dir"
-  "$npm_bin" ci
+  "$npm_bin" ci --no-audit
   "$npm_bin" run build
   if [[ -d .git ]]; then
     "$npm_bin" run secrets:check
   fi
-  "$npm_bin" prune --omit=dev
+  "$npm_bin" prune --omit=dev --no-audit
 )
 [[ -f "$install_dir/dist/index.js" ]] || die "Build did not produce dist/index.js."
 "$node_path" "$install_dir/dist/index.js" --version
