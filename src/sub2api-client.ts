@@ -2,9 +2,10 @@ import { SafeError } from "./errors.js";
 import { inspectImage, type SupportedImage } from "./image-files.js";
 import type { AppConfig } from "./config.js";
 import { APP_VERSION } from "./version.js";
+import { imageQualitySchema, imageSizeSchema, isImage25Model } from "./image-options.js";
 
-export type ImageQuality = "auto" | "low" | "medium" | "high";
-export type ImageSize = "auto" | "1024x1024" | "1536x1024" | "1024x1536";
+export type ImageQuality = "auto" | "low" | "medium" | "high" | "xhigh" | "max";
+export type ImageSize = string;
 export type ImageBackground = "auto" | "opaque" | "transparent";
 
 export interface ImageRequest {
@@ -161,6 +162,21 @@ export class Sub2ApiImageClient {
   }
 
   async createImage(request: ImageRequest): Promise<ImageResult> {
+    if (
+      !imageSizeSchema.safeParse(request.size).success ||
+      !imageQualitySchema.safeParse(request.quality).success
+    ) {
+      throw new SafeError("invalid_request", "Invalid image size or quality.");
+    }
+    if (
+      (request.quality === "xhigh" || request.quality === "max") &&
+      /^gpt-image-(1(?:\.5|-mini)?|2)(?:-\d{4}-\d{2}-\d{2})?$/.test(this.#config.model)
+    ) {
+      throw new SafeError(
+        "invalid_request",
+        "xhigh and max require GPT Image 2.5; configure SUB2API_IMAGE_MODEL first.",
+      );
+    }
     const isEdit = request.imageDataUrls.length > 0;
     const body: Record<string, unknown> = {
       background: request.background,
@@ -171,6 +187,11 @@ export class Sub2ApiImageClient {
       response_format: "b64_json",
       size: request.size,
     };
+    if (isImage25Model(this.#config.model)) {
+      // GPT Image 2.5 returns base64 automatically and does not accept this
+      // legacy parameter. Preserve the existing gateway contract for other models.
+      delete body.response_format;
+    }
     if (request.background === "transparent") {
       // Alpha output requires PNG or WebP. Pin PNG instead of relying on
       // route-specific defaults in Sub2API or its selected upstream.
