@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { AppConfig } from "./config.js";
 import { publicErrorMessage } from "./errors.js";
+import { imageQualitySchema, imageSizeSchema } from "./image-options.js";
 import { loadReferenceImage, saveImage } from "./image-files.js";
 import { Sub2ApiImageClient } from "./sub2api-client.js";
 import { APP_NAME, APP_VERSION } from "./version.js";
@@ -25,7 +26,12 @@ const imageInputSchema = z
       .min(1)
       .max(32_000)
       .describe("A complete image generation or editing instruction."),
-    quality: z.enum(["auto", "low", "medium", "high"]).optional().default("auto"),
+    quality: imageQualitySchema
+      .optional()
+      .default("auto")
+      .describe(
+        "Rendering quality. xhigh and max require GPT Image 2.5 or a compatible upstream model.",
+      ),
     referenced_image_paths: z
       .array(z.string().min(1).max(4096))
       .max(5)
@@ -33,7 +39,12 @@ const imageInputSchema = z
       .describe(
         "Up to five absolute local PNG, JPEG, or WebP paths. Their contents are sent to Sub2API.",
       ),
-    size: z.enum(["auto", "1024x1024", "1536x1024", "1024x1536"]).optional().default("auto"),
+    size: imageSizeSchema
+      .optional()
+      .default("auto")
+      .describe(
+        "auto or WIDTHxHEIGHT, such as 1536x864 or 3840x2160. Custom sizes require GPT Image 2/2.5 or a compatible upstream.",
+      ),
   })
   .strict();
 

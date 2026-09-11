@@ -61,6 +61,32 @@ curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/i
   env SUB2API_TIMEOUT_MS=900000 bash
 ```
 
+### 使用 GPT Image 2.5
+
+支持 `gpt-image-2.5-flare`、`gpt-image-2.5-sunburst` 及其 `-2026-09-08`
+快照。默认仍为 `gpt-image-2`；请先确认 Sub2API 已开放所选模型及参数。
+更新时指定模型（以下命令在本次更新合入 main 后可用）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.sh |
+  env SUB2API_IMAGE_MODEL=gpt-image-2.5-flare bash
+```
+
+```powershell
+$env:SUB2API_IMAGE_MODEL = "gpt-image-2.5-flare"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; irm 'https://raw.githubusercontent.com/BillSJC/sub2api-imagegen-mcp/main/install.ps1' | iex"
+```
+
+需要 Sunburst 时替换模型名，完成后重启 Codex。2.5 可使用 `quality: xhigh`
+或 `max`，例如 `size: 1536x864`；更高质量可能增加耗时和费用。
+2.5 请求省略不受支持的 `response_format`，直接读取上游默认返回的 base64。
+透明背景仍显式使用 PNG。
+
+自定义尺寸的宽高必须为 16 的倍数、单边不超过 3840、长短边比不超过 3:1，
+总像素在 655,360–8,294,400 之间。高于 `2560x1440` 的分辨率属于实验性支持。
+依据：[OpenAI 图片接口文档](https://developers.openai.com/api/docs/guides/image-generation)。
+本库测试使用模拟上游；具体网关的模型可用性仍需独立验证。
+
 ## 使用示例
 
 下面的例子都使用 `1024x1024` 和 `quality: low`，构图简单、通常耗时较短。直接
@@ -133,14 +159,14 @@ output_name: raincoat-cat-mint
 
 ### 工具参数
 
-| 参数                     | 可选值或说明                                     |
-| ------------------------ | ------------------------------------------------ |
-| `prompt`                 | 必填，生成或编辑指令                             |
-| `referenced_image_paths` | 可选，1–5 个本地绝对路径                         |
-| `quality`                | `auto`、`low`、`medium`、`high`                  |
-| `size`                   | `auto`、`1024x1024`、`1536x1024`、`1024x1536`    |
-| `background`             | `auto`、`opaque`、`transparent`                  |
-| `output_name`            | 可选，本地文件名；危险字符会被过滤，同名不会覆盖 |
+| 参数                     | 可选值或说明                                                 |
+| ------------------------ | ------------------------------------------------------------ |
+| `prompt`                 | 必填，生成或编辑指令                                         |
+| `referenced_image_paths` | 可选，1–5 个本地绝对路径                                     |
+| `quality`                | `auto`、`low`、`medium`、`high`；2.5 另支持 `xhigh`、`max`   |
+| `size`                   | `auto` 或符合上述限制的 `WIDTHxHEIGHT`，自定义尺寸需上游支持 |
+| `background`             | `auto`、`opaque`、`transparent`                              |
+| `output_name`            | 可选，本地文件名；危险字符会被过滤，同名不会覆盖             |
 
 常用环境变量：`SUB2API_IMAGE_MODEL`、`SUB2API_TIMEOUT_MS`、
 `SUB2API_MAX_INPUT_IMAGE_BYTES`、`SUB2API_MAX_RESPONSE_BYTES`。长期使用 Key

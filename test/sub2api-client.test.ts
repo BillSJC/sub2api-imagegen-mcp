@@ -75,6 +75,68 @@ test("client pins PNG output for transparent edits", async () => {
   assert.equal(capturedBody.response_format, "b64_json");
 });
 
+for (const model of [
+  "gpt-image-2.5-flare",
+  "gpt-image-2.5-sunburst",
+  "gpt-image-2.5-flare-2026-09-08",
+  "gpt-image-2.5-sunburst-2026-09-08",
+]) {
+  for (const quality of ["xhigh", "max"] as const) {
+    test(`${model} supports ${quality} generation and transparent editing`, async () => {
+      for (const edit of [false, true]) {
+        const client = new Sub2ApiImageClient(testConfig(os.tmpdir(), { model }), (async (
+          url,
+          init,
+        ) => {
+          assert.equal(String(url).endsWith(edit ? "images/edits" : "images/generations"), true);
+          const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+          assert.equal(body.model, model);
+          assert.equal(body.quality, quality);
+          assert.equal(body.size, "1536x864");
+          assert.equal(body.output_format, "png");
+          assert.equal("response_format" in body, false);
+          assert.equal("images" in body, edit);
+          return new Response(JSON.stringify({ data: [{ b64_json: ONE_PIXEL_PNG_BASE64 }] }));
+        }) as typeof fetch);
+        const result = await client.createImage({
+          background: "transparent",
+          imageDataUrls: edit ? [`data:image/png;base64,${ONE_PIXEL_PNG_BASE64}`] : [],
+          prompt: "test",
+          quality,
+          size: "1536x864",
+        });
+        assert.equal(result.mimeType, "image/png");
+      }
+    });
+  }
+}
+
+test("invalid sizes and unsupported legacy quality fail before any network request", async () => {
+  const client = new Sub2ApiImageClient(testConfig(os.tmpdir()), (async () => {
+    assert.fail("must not contact upstream");
+  }) as typeof fetch);
+  await assert.rejects(
+    client.createImage({
+      background: "auto",
+      imageDataUrls: [],
+      prompt: "test",
+      quality: "max",
+      size: "auto",
+    }),
+    /require GPT Image 2.5/,
+  );
+  await assert.rejects(
+    client.createImage({
+      background: "auto",
+      imageDataUrls: [],
+      prompt: "test",
+      quality: "auto",
+      size: "512x512",
+    }),
+    /Invalid image size/,
+  );
+});
+
 test("client redacts the API key from upstream errors", async () => {
   const config = testConfig(path.join(os.tmpdir(), "sub2api-output"), {
     apiKey: "secret-that-must-not-escape",

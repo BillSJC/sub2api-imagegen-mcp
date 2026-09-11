@@ -13,7 +13,7 @@ import { ONE_PIXEL_PNG_BASE64, testConfig } from "./fixtures.js";
 test("MCP exposes imagegen and returns an image plus a local path", async (context) => {
   const outputDir = await mkdtemp(path.join(os.tmpdir(), "sub2api-mcp-"));
   context.after(() => rm(outputDir, { force: true, recursive: true }));
-  const config = testConfig(outputDir);
+  const config = testConfig(outputDir, { model: "gpt-image-2.5-flare" });
   const imageClient = new Sub2ApiImageClient(
     config,
     (async () =>
@@ -41,6 +41,8 @@ test("MCP exposes imagegen and returns an image plus a local path", async (conte
     arguments: {
       output_name: "mcp-canary",
       prompt: "a tiny canary square",
+      quality: "max",
+      size: "1536x864",
     },
     name: "imagegen",
   });
@@ -52,6 +54,7 @@ test("MCP exposes imagegen and returns an image plus a local path", async (conte
   assert.equal(typeof result.structuredContent, "object");
   const output = result.structuredContent as Record<string, unknown>;
   assert.equal(output.operation, "generation");
+  assert.equal(output.model, "gpt-image-2.5-flare");
   assert.equal(output.mime_type, "image/png");
   assert.equal(output.path, path.join(outputDir, "mcp-canary.png"));
 });
